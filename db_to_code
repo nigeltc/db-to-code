@@ -1,0 +1,53 @@
+#!/usr/bin/python
+# coding: utf-8
+"""
+db_to_code - generate code from a database schema
+"""
+from __future__ import division
+import os
+import sys
+import warnings
+import re
+import csv
+import readline
+import MySQLdb as mysql
+from collections import defaultdict
+from itertools import ifilter
+from optparse import OptionParser
+from db import *
+
+def keep_table( table ):
+    input = raw_input( "Keep %s y/N: " % table.name )
+    return (input == 'y') or (input == 'Y')
+
+parser = OptionParser(  version='%prog 1.0', usage='usage: %prog [options]' )
+parser.add_option( "-f", "--filter", action="store_true", dest="filter", default=False, help="filter tables")
+parser.add_option( "-v", "--verbose", action="store_true", dest="verbose", default=False, help="print status messages to stdout")
+parser.add_option( "-D", "--database", action="store", dest="database", default='entity_authority_ntc', help="database name")
+parser.add_option( "-P", "--password", action="store", dest="password", default='author', help="database password")
+parser.add_option( "-S", "--server", action="store", dest="server", default='bignews.mmu.acquiremedia.com', help="database server")
+parser.add_option( "-U", "--user", action="store", dest="user", default='author', help="database user")
+(options, args) = parser.parse_args()
+
+if options.verbose:
+    print 'server:   %s' % (options.server)
+    print 'database: %s' % (options.database)
+    print 'user:     %s' % (options.user)
+    print 'password: %s' % (options.password)
+
+try:
+    con = mysql.connect( options.server, options.user, options.password, options.database )
+    con.autocommit( True )
+    schema = Schema( con, options.database )
+    if options.filter:
+        schema.filter()
+            
+    schema.dump()
+
+except mysql.Error, e:
+    print "Error %d: %s" % (e.args[0],e.args[1])
+    sys.exit(1)
+    
+finally:
+    if 'con' in locals():    
+        con.close()
